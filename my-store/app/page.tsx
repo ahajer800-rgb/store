@@ -39,12 +39,7 @@ export default function HomePage() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("card");
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
-
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardExpiry, setCardExpiry] = useState("");
-  const [cardCvv, setCardCvv] = useState("");
 
   const viewProductDetails = (product: Product) => {
     setSelectedProduct(product);
@@ -78,7 +73,7 @@ export default function HomePage() {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        setCustomerAddress(`الموقع الفعلي: (خط العرض: ${latitude.toFixed(4)}, خط الطول: ${longitude.toFixed(4)}) - جاري مطابقة العنوان...`);
+        setCustomerAddress(`الموقع الفعلي: (خط العرض: ${latitude.toFixed(4)}, خط الطول: ${longitude.toFixed(4)})`);
         setIsLoadingLocation(false);
       },
       () => {
@@ -95,24 +90,25 @@ export default function HomePage() {
       return;
     }
 
-    if (paymentMethod === "card" && (!cardNumber || !cardExpiry || !cardCvv)) {
-      alert("الرجاء إدخال بيانات بطاقة الدفع بشكل صحيح للتجربة.");
-      return;
-    }
+    // تجهيز نص الرسالة وتنسيقها للواتساب
+    const productsList = cartItems.map(item => `- ${item.name} (الكمية: ${item.qty}) -> بسعر: ${item.price * item.qty} ر.س`).join("\n");
+    const message = `طلب جديد من المتجر ✨\n\n👤 الاسم: ${customerName}\n📱 الجوال: ${customerPhone}\n📍 العنوان: ${customerAddress}\n\n📦 المنتجات:\n${productsList}\n\n💵 تكلفة الشحن: ${shippingCost} ر.س\n💰 الإجمالي الكلي: ${finalTotal} ر.س`;
     
-    const methodText = paymentMethod === "card" ? "عبر بطاقة الدفع الإلكترونية" : "عند الاستلام كاش/شبكة";
-    alert(`شكراً لكِ يا ${customerName}! تم سداد الفاتورة بنجاح ${methodText}. سيتم شحن طلبك وتوصيله فوراً.`);
+    // تم التحديث برقم جوالكِ مباشرة بالصيغة الدولية المعتمدة
+    const myPhoneNumber = "966594547496"; 
+    window.open(`https://wa.me/${myPhoneNumber}?text=${encodeURIComponent(message)}`, "_blank");
     
+    // تصفير السلة والعودة للرئيسية بعد التوجيه
     setCartItems([]);
-    setCardNumber("");
-    setCardExpiry("");
-    setCardCvv("");
+    setCustomerName("");
+    setCustomerPhone("");
+    setCustomerAddress("");
     setCurrentView("home");
   };
 
   const totalItemsCount = cartItems.reduce((acc, item) => acc + item.qty, 0);
   const totalPrice = cartItems.reduce((acc, item) => acc + item.price * item.qty, 0);
-  const shippingCost = totalPrice > 0 ? 25 : 0; 
+  const shippingCost = totalPrice > 0 ? 25 : 0;
   const finalTotal = totalPrice + shippingCost;
 
   const inputStyle: React.CSSProperties = {
@@ -130,7 +126,6 @@ export default function HomePage() {
 
   return (
     <main style={{ padding: 24, fontFamily: "system-ui, sans-serif", direction: "rtl", backgroundColor: "#f7f2ed", minHeight: "100vh" }}>
-      
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <h1 onClick={() => setCurrentView("home")} style={{ margin: 0, fontSize: "2.5rem", color: "#5c3a21", fontWeight: "bold", cursor: "pointer" }}>
           متجري
@@ -185,11 +180,9 @@ export default function HomePage() {
       {currentView === "checkout" && (
         <div>
           <button onClick={() => setCurrentView("home")} style={{ color: "#5c3a21", background: "none", border: "none", padding: 0, font: "inherit", fontWeight: "600", cursor: "pointer", marginBottom: 24 }} > ← إلغاء والعودة للمتجر </button>
-          
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 32 }}>
             <div style={{ backgroundColor: "white", padding: 24, borderRadius: 16, border: "1px solid #d1c7bd" }}>
-              <h2 style={{ color: "#5c3a21", marginTop: 0, marginBottom: 20 }}>معلومات الشحن والدفع</h2>
-              
+              <h2 style={{ color: "#5c3a21", marginTop: 0, marginBottom: 20 }}>معلومات الشحن والتوصيل</h2>
               <form onSubmit={handleCheckoutSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 <div>
                   <label style={{ display: "block", marginBottom: 6, fontWeight: "600" }}>الاسم الكامل *</label>
@@ -209,53 +202,8 @@ export default function HomePage() {
                   <textarea required rows={3} value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} style={{ ...inputStyle, resize: "none" }} placeholder="المدينة، الحي، اسم الشارع" />
                 </div>
 
-                <div>
-                  <label style={{ display: "block", marginBottom: 12, fontWeight: "600" }}>طريقة الدفع</label>
-                  <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
-                    <div 
-                      onClick={() => setPaymentMethod("card")}
-                      style={{ flex: 1, padding: "14px", border: paymentMethod === "card" ? "3px solid #5c3a21" : "2px solid #000", borderRadius: 10, cursor: "pointer", textAlign: "center", backgroundColor: paymentMethod === "card" ? "#fbf9f6" : "#fff" }}
-                    >
-                      <span style={{ display: "block", fontWeight: "bold", fontSize: "1.1rem" }}>💳 بطاقة بنكية</span>
-                      <span style={{ fontSize: "0.8rem", color: "#666" }}>مدى / فيزا / ماستركارد</span>
-                    </div>
-                    <div 
-                      onClick={() => setPaymentMethod("cod")}
-                      style={{ flex: 1, padding: "14px", border: paymentMethod === "cod" ? "3px solid #5c3a21" : "2px solid #000", borderRadius: 10, cursor: "pointer", textAlign: "center", backgroundColor: paymentMethod === "cod" ? "#fbf9f6" : "#fff" }}
-                    >
-                      <span style={{ display: "block", fontWeight: "bold", fontSize: "1.1rem" }}>💵 عند الاستلام</span>
-                      <span style={{ fontSize: "0.8rem", color: "#666" }}>نقدًا أو عبر الشبكة لـلمندوب</span>
-                    </div>
-                  </div>
-                </div>
-
-                {paymentMethod === "card" && (
-                  <div style={{ backgroundColor: "#f9f9f9", padding: 16, borderRadius: 12, border: "2px solid #000000", display: "flex", flexDirection: "column", gap: 12 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                      <span style={{ fontSize: "0.9rem", fontWeight: "bold", color: "#333" }}>بيانات البطاقة الآمنة</span>
-                      <div style={{ display: "flex", gap: 6, fontWeight: "bold", fontSize: "0.75rem" }}>
-                        <span style={{ backgroundColor: "#0056b3", color: "#fff", padding: "2px 6px", borderRadius: 4 }}>مدى</span>
-                        <span style={{ backgroundColor: "#f5a623", color: "#fff", padding: "2px 6px", borderRadius: 4 }}>Visa</span>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <input type="text" maxLength={19} value={cardNumber} onChange={(e) => setCardNumber(e.target.value.replace(/\s?/g, '').replace(/(\d{4})/g, '$1 ').trim())} style={{ ...inputStyle, padding: 10 }} placeholder="رقم البطاقة (16 خانة)" />
-                    </div>
-
-                    <div style={{ display: "flex", gap: 12 }}>
-                      <div style={{ flex: 1 }}>
-                        <input type="text" maxLength={5} value={cardExpiry} onChange={(e) => setCardExpiry(e.target.value)} style={{ ...inputStyle, padding: 10, textAlign: "center" }} placeholder="الشهر / السنة (MM/YY)" />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <input type="password" maxLength={3} value={cardCvv} onChange={(e) => setCardCvv(e.target.value)} style={{ ...inputStyle, padding: 10, textAlign: "center" }} placeholder="الرمز السري (CVV)" />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <button type="submit" style={{ backgroundColor: "#5c3a21", color: "white", border: "none", padding: "14px", borderRadius: 10, fontWeight: "bold", fontSize: "1.1rem", cursor: "pointer", marginTop: 12 }}>
-                  {paymentMethod === "card" ? "دفع الفاتورة وإتمام الطلب 💳" : "تأكيد الطلب عند الاستلام 🚚"}
+                <button type="submit" style={{ backgroundColor: "#25D366", color: "white", border: "none", padding: "14px", borderRadius: 10, fontWeight: "bold", fontSize: "1.1rem", cursor: "pointer", marginTop: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                  تأكيد الطلب عبر الواتساب 💬
                 </button>
               </form>
             </div>
